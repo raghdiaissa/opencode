@@ -19,8 +19,18 @@ app.post('/api/chat', (req, res) => {
     }
 
     // تشغيل opencode-ai وإرسال رسالة المستخدم له كمعامل argument
-    const aiProcess = spawn('opencode-ai', [userMessage]);
+    const isWindows = process.platform === 'win32';
+    const command = isWindows ? 'opencode-ai.cmd' : 'opencode-ai';
+    const aiProcess = spawn(command, [userMessage]);
     
+    // التقاط أو تمرير أخطاء التشغيل لمنع توقف الخادم
+    aiProcess.on('error', (err) => {
+        console.error('Process Error:', err.message);
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'تعذر تشغيل الأداة. هل قمت بتثبيت opencode-ai؟' });
+        }
+    });
+
     let result = '';
     let errorMessage = '';
 
@@ -36,6 +46,7 @@ app.post('/api/chat', (req, res) => {
 
     // عند انتهاء الأمر، نرسل الرد للمتصفح
     aiProcess.on('close', (code) => {
+        if (res.headersSent) return;
         if (code !== 0 && !result) {
             console.error('Error Output:', errorMessage);
             return res.status(500).json({ error: 'حدث خطأ أثناء معالجة الرد من الذكاء الاصطناعي' });
