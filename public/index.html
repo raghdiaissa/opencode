@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دردشة الذكاء الاصطناعي | OpenCode</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
+        
+        * { box-sizing: border-box; font-family: 'Tajawal', sans-serif; }
+        body {
+            margin: 0; padding: 0;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            height: 100vh; display: flex; justify-content: center; align-items: center;
+        }
+        .chat-container {
+            width: 100%; max-width: 600px; height: 85vh;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            display: flex; flex-direction: column; overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+        }
+        .header {
+            background: rgba(0,0,0,0.3); padding: 20px; text-align: center;
+            color: white; font-size: 1.2rem; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .messages {
+            flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px;
+        }
+        .message {
+            max-width: 80%; padding: 12px 18px; border-radius: 15px;
+            color: #fff; line-height: 1.5; word-wrap: break-word; font-size: 15px;
+        }
+        .user { align-self: flex-start; background: #0072ff; border-bottom-right-radius: 5px; }
+        .bot { align-self: flex-end; background: rgba(255,255,255,0.1); border-bottom-left-radius: 5px; border: 1px solid rgba(255,255,255,0.1); }
+        .input-area {
+            padding: 20px; background: rgba(0,0,0,0.2);
+            display: flex; gap: 10px; border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        input {
+            flex: 1; padding: 15px; border-radius: 10px; border: none;
+            background: rgba(255,255,255,0.1); color: white; outline: none; transition: 0.3s;
+        }
+        input:focus { background: rgba(255,255,255,0.15); box-shadow: 0 0 10px rgba(0, 114, 255, 0.5); }
+        button {
+            padding: 15px 25px; border: none; border-radius: 10px; background: #0072ff;
+            color: white; font-weight: bold; cursor: pointer; transition: 0.3s;
+        }
+        button:hover { background: #005ce6; }
+        .loading { display: none; align-self: flex-end; color: rgba(255,255,255,0.5); font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+    <div class="header">مساعد الذكاء الاصطناعي</div>
+    <div class="messages" id="messages"></div>
+    <div class="loading" id="loading">جاري التفكير...</div>
+    <div class="input-area">
+        <input type="text" id="userInput" placeholder="اكتب رسالتك هنا..." onkeypress="handleEnter(event)">
+        <button onclick="sendMessage()">إرسال</button>
+    </div>
+</div>
+
+<script>
+    const messagesDiv = document.getElementById('messages');
+    const loadingDiv = document.getElementById('loading');
+    const userInput = document.getElementById('userInput');
+
+    function handleEnter(e) {
+        if (e.key === 'Enter') sendMessage();
+    }
+
+    async function sendMessage() {
+        const text = userInput.value.trim();
+        if (!text) return;
+
+        appendMessage(text, 'user');
+        userInput.value = '';
+        loadingDiv.style.display = 'block';
+
+        try {
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: text })
+            });
+            const data = await res.json();
+            
+            loadingDiv.style.display = 'none';
+            if (data.error) throw new Error(data.error);
+            appendMessage(data.reply, 'bot');
+        } catch (error) {
+            loadingDiv.style.display = 'none';
+            appendMessage("عذراً، حدث خطأ أثناء الاتصال بالخادم. تأكد من أن الأداة تم تنصيبها.", 'bot');
+        }
+    }
+
+    function appendMessage(text, sender) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `message ${sender}`;
+        msgDiv.innerText = text;
+        messagesDiv.appendChild(msgDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+</script>
+
+</body>
+</html>
